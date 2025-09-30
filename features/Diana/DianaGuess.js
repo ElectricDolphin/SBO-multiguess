@@ -128,6 +128,10 @@ let finalLocation = null;
 let lastGuessTime = 0;
 let hasMadeInitialGuess = false;
 let hasMadeManualGuess = false;
+let guessWaypoints = [];
+let shouldCreateWaypoint = true;
+let shouldUpdateWaypoint = true;
+let alreadyCheckingLoc = false;
 
 export function getFinalLocation() {
     return finalLocation;
@@ -154,13 +158,29 @@ class PreciseGuessBurrow {
         hasMadeManualGuess = false;
         hasMadeInitialGuess = false;
         finalLocation = null;
+        for (var i = 0; i < guessWaypoints.length; i ++) {
+            guessWaypoints[i].hide();
+        }
+        if (!alreadyCheckingLoc) {
+            setTimeout(function() {
+                alreadyCheckingLoc = false;
+                if (getWorld() == "Hub") {
+                    for (var i = 0; i < guessWaypoints.length; i ++) {
+                        guessWaypoints[i].show();
+                    }
+                }
+            }, 3000);
+            alreadyCheckingLoc = true;
+        }
     }
 
     onReceiveParticle(packet) {
         if (packet.func_179749_a() != 'DRIP_LAVA' || parseInt(packet.func_149222_k()) != 2 || parseFloat(packet.func_149227_j()).toFixed(1) != -0.5) return;
         const currLoc = new SboVec(packet.func_149220_d(), packet.func_149226_e(), packet.func_149225_f());
         this.lastLavaParticle = Date.now();
-        if (Date.now() - lastGuessTime > 3000) return;
+        if (Date.now() - lastGuessTime > 3000) {
+            return;
+        }
         
         if (this.particleLocations.length === 0) {
             this.particleLocations.push(currLoc);
@@ -174,7 +194,13 @@ class PreciseGuessBurrow {
         const guessPosition = this.guessBurrowLocation();
         if (!guessPosition) return;
         finalLocation = guessPosition.down(0.5).roundLocationToBlock();
-        Waypoint.updateGuess(finalLocation);
+        if (shouldCreateWaypoint) {
+            shouldCreateWaypoint = false;
+            guessWaypoints.push(new Waypoint("Guess", 0, 0, 0, 0, 0, 0, 0, "guess", false, true, true));
+            guessWaypoints[guessWaypoints.length - 1].updateGuess(finalLocation);
+        } else if (shouldUpdateWaypoint) {
+            guessWaypoints[guessWaypoints.length - 1].updateGuess(finalLocation);
+        }
         hasMadeManualGuess = true;
     }
 
@@ -241,6 +267,8 @@ class PreciseGuessBurrow {
         if (Date.now() - lastGuessTime < 3000) return;
         this.particleLocations = [];
         lastGuessTime = Date.now();
+        shouldCreateWaypoint = true;
+        shouldUpdateWaypoint = true;
     }
 }
 const preciseGuess = new PreciseGuessBurrow();
@@ -275,7 +303,13 @@ function tryToMakeInitialGuess() {
         }
         const directionVec = new SboVec(-Math.sin(CTArmorStand.getYaw() * Math.PI / 180), 0, Math.cos(CTArmorStand.getYaw() * Math.PI / 180));
         finalLocation = new SboVec(lastInteractedPos.x, lastInteractedPos.y, lastInteractedPos.z).add(directionVec.multiply(multiplier));
-        Waypoint.updateGuess(finalLocation);
+        if (shouldCreateWaypoint) {
+            shouldCreateWaypoint = false;
+            guessWaypoints.push(new Waypoint("Guess", 0, 0, 0, 0, 0, 0, 0, "guess", false, true, true));
+            guessWaypoints[guessWaypoints.length - 1].updateGuess(finalLocation);
+        } else if (shouldUpdateWaypoint) {
+            guessWaypoints[guessWaypoints.length - 1].updateGuess(finalLocation);
+        }
         hasMadeInitialGuess = true;
         return;
     });
