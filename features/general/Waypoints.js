@@ -80,7 +80,7 @@ export class Waypoint {
         this.fy = 0;
         this.pos = undefined
 
-        if (this.type != "guess") {
+        if (this.type != "guess" || true) {
             if (!Waypoint.waypoints[type]) Waypoint.waypoints[type] = [];
             Waypoint.waypoints[type].push(this);
         }
@@ -215,7 +215,10 @@ export class Waypoint {
         if (!this.formatted) return;
         if (this.hidden) return;
         let removeAtDistance = 10;
-        if (this.distanceRaw <= settings.removeGuessDistance && this.type == "guess" && settings.removeGuess) return;
+        if (this.distanceRaw <= settings.removeGuessDistance && this.type == "guess" && settings.removeGuess) {
+            this.remove();
+            return;
+        }
 
         if (!settings.removeGuess && this.type == "guess")  removeAtDistance = 0;
 
@@ -229,6 +232,10 @@ export class Waypoint {
         }
 
         if (this.line) this.renderLine()
+
+        // if (this.type == "guess" && this.distanceToPlayer() < 30) {
+        //     this.remove();
+        // }
     }
 
     remove() {
@@ -272,12 +279,12 @@ export class Waypoint {
         }
     }
 
-    static updateGuess(SboVec) {
-        Waypoint.guessWp.show();
-        Waypoint.guessWp.x = SboVec.getX();
-        Waypoint.guessWp.y = SboVec.getY() + 1;
-        Waypoint.guessWp.z = SboVec.getZ();
-        Waypoint.guessWp.format();
+    updateGuess(SboVec) {
+        this.show();
+        this.x = SboVec.getX();
+        this.y = SboVec.getY() + 1;
+        this.z = SboVec.getZ();
+        this.format();
     }
 
     static waypointExists(type, x, y, z) {
